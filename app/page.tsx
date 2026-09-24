@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { supabase } from "../lib/supabase";
 
 type Profile = { id:string; full_name:string|null; username:string|null; country:string|null; bio:string|null; avatar_url:string|null };
@@ -33,41 +34,74 @@ export default function Home() {
 
   async function loadData(currentUser:any) {
     try {
-    const { data: ps } = await supabase.from("community_posts").select("id,content,created_at,author_id,profiles:author_id(id,full_name,username,country,bio,avatar_url)").order("created_at",{ascending:false}).limit(30);
-    setPosts((ps||[]) as Post[]);
-    const { data: prs } = await supabase.from("projects").select("id,name,description,category,tech_stack,url,owner_id,profiles:owner_id(id,full_name,username,country,bio,avatar_url)").order("created_at",{ascending:false}).limit(30);
-    setProjects((prs||[]) as Project[]);
-    if (currentUser) {
-      const { data:p } = await supabase.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
-      setProfile(p as Profile|null);
+      const { data: ps, error: postsError } = await supabase
+        .from("community_posts")
+        .select("id,content,created_at,author_id")
+        .order("created_at",{ascending:false})
+        .limit(30);
+      if (!postsError) setPosts((ps||[]) as Post[]);
+
+      const { data: prs, error: projectsError } = await supabase
+        .from("projects")
+        .select("id,name,description,category,tech_stack,url,owner_id")
+        .order("created_at",{ascending:false})
+        .limit(30);
+      if (!projectsError) setProjects((prs||[]) as Project[]);
+
+      if (currentUser) {
+        const { data:p } = await supabase.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
+        setProfile(p as Profile|null);
+      }
+    } catch (err) {
+      console.error("loadData", err);
     }
-    } catch (err) { console.error("loadData", err); }
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({data}) => { setUser(data.session?.user||null); loadData(data.session?.user||null); });
-    const {data:listener}=supabase.auth.onAuthStateChange((_event,session)=>{ setUser(session?.user||null); loadData(session?.user||null); });
-    return ()=>listener.subscription.unsubscribe();
+    let mounted = true;
+    supabase.auth.getSession().then(({data}) => {
+      if (!mounted) return;
+      const currentUser=data.session?.user||null;
+      setUser(currentUser);
+      void loadData(currentUser);
+    });
+    const {data:listener}=supabase.auth.onAuthStateChange((_event,session)=>{
+      const currentUser=session?.user||null;
+      setUser(currentUser);
+      void loadData(currentUser);
+    });
+    return ()=>{ mounted=false; listener.subscription.unsubscribe(); };
   },[]);
 
   const filteredPeople = useMemo(()=>demoPeople.filter(p=>(p.name+" "+p.role+" "+p.place+" "+p.tags.join(" ")).toLowerCase().includes(query.toLowerCase())),[query]);
   const filteredProjects = useMemo(()=>projects.filter(p=>(p.name+" "+(p.description||"")+" "+(p.category||"")+" "+(p.tech_stack||[]).join(" ")).toLowerCase().includes(query.toLowerCase())),[projects,query]);
 
   async function auth(e:FormEvent) {
-    e.preventDefault(); setLoading(true); setMessage("");
-    if(mode==="signup") {
-      const {data,error}=await supabase.auth.signUp({email,password,options:{data:{full_name:name}}});
-      if(error) setMessage(error.message);
-      else if(data.user) {
-        await supabase.from("profiles").upsert({id:data.user.id,full_name:name,username:name.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,20)||null});
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+    try {
+      if(mode==="signup") {
+        const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:name.trim()}}});
+        if(error) throw error;
+        if(!data.user) throw new Error("Impossible de créer le compte.");
+        const username=name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,20)||null;
+        const {error:profileError}=await supabase.from("profiles").upsert({id:data.user.id,full_name:name.trim(),username});
+        if(profileError) throw profileError;
         setMessage(data.session ? "Compte créé." : "Compte créé. Vérifie ton e-mail si la confirmation est activée.");
         setAuthOpen(false);
+      } else {
+        const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});
+        if(error) throw error;
+        setAuthOpen(false);
+        setMessage("Connexion réussie.");
       }
-    } else {
-      const {error}=await supabase.auth.signInWithPassword({email,password});
-      if(error) setMessage(error.message); else { setAuthOpen(false); setMessage("Connexion réussie."); }
+    } catch (err) {
+      const error = err as { message?: string };
+      setMessage(error?.message || "Une erreur est survenue. Réessaie.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function logout(){ await supabase.auth.signOut(); setUser(null); setProfile(null); setMessage("Déconnexion réussie."); }
@@ -110,7 +144,7 @@ export default function Home() {
       <div className="feature-grid">{[
         ["👤","Comptes","Inscription et connexion sécurisées."],["📝","Publications","Publie des messages visibles par la communauté."],["🚀","Projets","Crée et présente tes projets."],["🔎","Découverte","Recherche dans les profils et projets."]
       ].map(([icon,title,text])=><article className="feature" key={title}><div className="feature-icon">{icon}</div><h3>{title}</h3><p>{text}</p><button onClick={()=>setActive(title==="Publications"?"Communauté":title==="Projets"?"Projets":"Découvrir")}>Ouvrir →</button></article>)}</div>
-    </section></>}
+    </section></section></>}
 
     {active==="Communauté" && <section className="app-section"><div className="section-head"><div><span className="eyebrow">COMMUNAUTÉ</span><h2>Le fil <em>ONEWORLD.</em></h2></div><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher…"/></div>
       {!user ? <div className="auth-banner"><h3>Connecte-toi pour publier et suivre les membres.</h3><button className="primary" onClick={()=>{setMode("login");setAuthOpen(true)}}>Se connecter</button></div> :
