@@ -32,6 +32,7 @@ export default function Home() {
   const [message,setMessage]=useState("");
 
   async function loadData(currentUser:any) {
+    try {
     const { data: ps } = await supabase.from("community_posts").select("id,content,created_at,author_id,profiles:author_id(id,full_name,username,country,bio,avatar_url)").order("created_at",{ascending:false}).limit(30);
     setPosts((ps||[]) as Post[]);
     const { data: prs } = await supabase.from("projects").select("id,name,description,category,tech_stack,url,owner_id,profiles:owner_id(id,full_name,username,country,bio,avatar_url)").order("created_at",{ascending:false}).limit(30);
@@ -40,6 +41,7 @@ export default function Home() {
       const { data:p } = await supabase.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
       setProfile(p as Profile|null);
     }
+    } catch (err) { console.error("loadData", err); }
   }
 
   useEffect(() => {
