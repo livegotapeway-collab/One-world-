@@ -31,6 +31,8 @@ export default function Home() {
   const [projectDescription,setProjectDescription]=useState("");
   const [loading,setLoading]=useState(false);
   const [message,setMessage]=useState("");
+  const [settings,setSettings]=useState({notifications:true,publicProfile:true,language:"Français",theme:"Clair"});
+  const [settingsSaved,setSettingsSaved]=useState(false);
 
   async function loadData(currentUser:any) {
     try {
@@ -58,6 +60,13 @@ export default function Home() {
   }
 
   useEffect(() => {
+    try { const saved=localStorage.getItem("oneworld-settings"); if(saved) setSettings(prev=>({...prev,...JSON.parse(saved)})); } catch {}
+  },[]);
+  
+  useEffect(() => {
+    document.documentElement.dataset.theme=settings.theme==="Sombre"?"dark":"light";
+    try { localStorage.setItem("oneworld-settings",JSON.stringify(settings)); } catch {}
+  },[settings]);
     let mounted = true;
     supabase.auth.getSession().then(({data}) => {
       if (!mounted) return;
@@ -132,7 +141,7 @@ export default function Home() {
   return <main>
     <nav className="nav">
       <button className="brand" onClick={()=>setActive("Accueil")}><span className="brand-mark">◎</span> ONE<span>WORLD</span></button>
-      <div className="nav-links">{["Accueil","Communauté","Projets","Découvrir"].map(item=><button key={item} className={active===item?"nav-active":""} onClick={()=>setActive(item)}>{item}</button>)}</div>
+      <div className="nav-links">{["Accueil","Communauté","Projets","Découvrir","Paramètres"].map(item=><button key={item} className={active===item?"nav-active":""} onClick={()=>setActive(item)}>{item}</button>)}</div>
       <div className="nav-actions">
         {user ? <><button className="login" onClick={()=>setActive("Profil")}>{profile?.full_name||"Mon profil"}</button><button className="primary small" onClick={logout}>Se déconnecter</button></> :
         <><button className="login" onClick={()=>{setMode("login");setAuthOpen(true)}}>Se connecter</button><button className="primary small" onClick={()=>{setMode("signup");setAuthOpen(true)}}>Créer un compte</button></>}
@@ -171,7 +180,15 @@ export default function Home() {
 
     {active==="Découvrir" && <section className="app-section"><div className="section-head"><div><span className="eyebrow">DÉCOUVRIR</span><h2>Des talents à <em>rencontrer.</em></h2></div><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Nom, compétence, pays…"/></div><div className="people">{filteredPeople.map(p=><article className="person" key={p.name}><div className="person-avatar">{p.initials}</div><div className="person-main"><h3>{p.name}</h3><p>{p.role}</p><small>{p.place}</small><div>{p.tags.map(t=><span className="tag" key={t}>{t}</span>)}</div></div><button className="connect" onClick={()=>{if(!user){setMode("login");setAuthOpen(true)}else setMessage("Profil public : connexion sociale à venir.")}}>+</button></article>)}</div></section>}
 
-    {active==="Profil" && <section className="app-section"><div className="profile-card"><span className="eyebrow">MON PROFIL</span><h2>{profile?.full_name||user?.email}</h2><p>{profile?.bio||"Ajoute bientôt ta bio, ton pays et tes compétences depuis ton profil."}</p><div className="profile-grid"><div><b>Nom d'utilisateur</b><span>{profile?.username||"—"}</span></div><div><b>Pays</b><span>{profile?.country||"—"}</span></div><div><b>E-mail</b><span>{user?.email||"—"}</span></div></div></div></section>}
+    {active==="Profil" && <section className="app-section"><div className="profile-card"><span className="eyebrow">MON PROFIL</span><h2>{profile?.full_name||user?.email}</h2><p>{profile?.bio||"Ajoute bientôt ta bio, ton pays et tes compétences depuis ton profil."}</p><div className="profile-grid"><div><b>Nom d'utilisateur</b><span>{profile?.username||"—"}</span></div><div><b>Pays</b><span>{profile?.country||"—"}</span></div><div><b>E-mail</b><span>{user?.email||"—"}</span></div></div></div></section>}\n\n    {active==="Paramètres" && <section className="app-section"><div className="section-head"><div><span className="eyebrow">CONFIGURATION</span><h2>Les <em>paramètres.</em></h2></div><p>Personnalise ton expérience ONEWORLD. Les préférences sont conservées sur cet appareil.</p></div>
+      <div className="settings-grid">
+        <article className="settings-card"><div><span className="settings-icon">🔔</span><div><h3>Notifications</h3><p>Recevoir les alertes et mises à jour de la plateforme.</p></div></div><button className={settings.notifications?"toggle on":"toggle"} onClick={()=>setSettings(s=>({...s,notifications:!s.notifications}))}><span/></button></article>
+        <article className="settings-card"><div><span className="settings-icon">🌍</span><div><h3>Langue</h3><p>Choisis la langue principale de l'interface.</p></div></div><select value={settings.language} onChange={e=>setSettings(s=>({...s,language:e.target.value}))}><option>Français</option><option>English</option></select></article>
+        <article className="settings-card"><div><span className="settings-icon">🎨</span><div><h3>Apparence</h3><p>Choisis le thème de l'application.</p></div></div><select value={settings.theme} onChange={e=>setSettings(s=>({...s,theme:e.target.value}))}><option>Clair</option><option>Sombre</option></select></article>
+        <article className="settings-card"><div><span className="settings-icon">👁️</span><div><h3>Profil public</h3><p>Autoriser les autres membres à découvrir ton profil.</p></div></div><button className={settings.publicProfile?"toggle on":"toggle"} onClick={()=>setSettings(s=>({...s,publicProfile:!s.publicProfile}))}><span/></button></article>
+      </div>
+      <div className="settings-actions"><button className="primary" onClick={()=>{localStorage.setItem("oneworld-settings",JSON.stringify(settings));setSettingsSaved(true);setMessage("Paramètres enregistrés.");setTimeout(()=>setSettingsSaved(false),1800)}}>{settingsSaved?"Enregistré ✓":"Enregistrer les paramètres"}</button>{user&&<button className="secondary" onClick={logout}>Se déconnecter</button>}</div>
+    </section>
 
     <footer><div className="brand"><span className="brand-mark">◎</span> ONE<span>WORLD</span></div><p>Le monde numérique, connecté.</p><small>© 2026 ONEWORLD.</small></footer>
 
