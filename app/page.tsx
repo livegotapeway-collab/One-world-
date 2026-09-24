@@ -144,7 +144,7 @@ export default function Home() {
     <nav className="nav">
       <button className="brand" onClick={()=>setActive("Accueil")}><span className="brand-mark">◎</span> ONE<span>WORLD</span></button>
       <div className="nav-links">{["Accueil","Communauté","Projets","Découvrir","Paramètres"].map(item=><button key={item} className={active===item?"nav-active":""} onClick={()=>setActive(item)}>{item}</button>)}</div>
-      <div className="nav-actions">
+      <button className="mobile-settings" onClick={()=>setActive("Paramètres")}>⚙️ Paramètres</button><div className="nav-actions">
         {user ? <><button className="login" onClick={()=>setActive("Profil")}>{profile?.full_name||"Mon profil"}</button><button className="primary small" onClick={logout}>Se déconnecter</button></> :
         <><button className="login" onClick={()=>{setMode("login");setAuthOpen(true)}}>Se connecter</button><button className="primary small" onClick={()=>{setMode("signup");setAuthOpen(true)}}>Créer un compte</button></>}
       </div>
