@@ -188,7 +188,7 @@ export default function Home() {
         <article className="settings-card"><div><span className="settings-icon">👁️</span><div><h3>Profil public</h3><p>Autoriser les autres membres à découvrir ton profil.</p></div></div><button className={settings.publicProfile?"toggle on":"toggle"} onClick={()=>setSettings(s=>({...s,publicProfile:!s.publicProfile}))}><span/></button></article>
       </div>
       <div className="settings-actions"><button className="primary" onClick={()=>{localStorage.setItem("oneworld-settings",JSON.stringify(settings));setSettingsSaved(true);setMessage("Paramètres enregistrés.");setTimeout(()=>setSettingsSaved(false),1800)}}>{settingsSaved?"Enregistré ✓":"Enregistrer les paramètres"}</button>{user&&<button className="secondary" onClick={logout}>Se déconnecter</button>}</div>
-    </section>
+    </section>}
 
     <footer><div className="brand"><span className="brand-mark">◎</span> ONE<span>WORLD</span></div><p>Le monde numérique, connecté.</p><small>© 2026 ONEWORLD.</small></footer>
 
