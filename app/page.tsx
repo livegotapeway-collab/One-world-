@@ -144,7 +144,7 @@ export default function Home() {
       <div className="feature-grid">{[
         ["👤","Comptes","Inscription et connexion sécurisées."],["📝","Publications","Publie des messages visibles par la communauté."],["🚀","Projets","Crée et présente tes projets."],["🔎","Découverte","Recherche dans les profils et projets."]
       ].map(([icon,title,text])=><article className="feature" key={title}><div className="feature-icon">{icon}</div><h3>{title}</h3><p>{text}</p><button onClick={()=>setActive(title==="Publications"?"Communauté":title==="Projets"?"Projets":"Découvrir")}>Ouvrir →</button></article>)}</div>
-    </section></section></>}
+    </section></>}
 
     {active==="Communauté" && <section className="app-section"><div className="section-head"><div><span className="eyebrow">COMMUNAUTÉ</span><h2>Le fil <em>ONEWORLD.</em></h2></div><input className="search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Rechercher…"/></div>
       {!user ? <div className="auth-banner"><h3>Connecte-toi pour publier et suivre les membres.</h3><button className="primary" onClick={()=>{setMode("login");setAuthOpen(true)}}>Se connecter</button></div> :
