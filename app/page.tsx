@@ -86,13 +86,24 @@ export default function Home() {
         if(error) throw error;
         if(!data.user) throw new Error("Impossible de créer le compte.");
         const username=name.trim().toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,20)||null;
-        const {error:profileError}=await supabase.from("profiles").upsert({id:data.user.id,full_name:name.trim(),username});
-        if(profileError) throw profileError;
-        setMessage(data.session ? "Compte créé." : "Compte créé. Vérifie ton e-mail si la confirmation est activée.");
-        setAuthOpen(false);
+        if(data.session){
+          const {error:profileError}=await supabase.from("profiles").upsert({id:data.user.id,full_name:name.trim(),username});
+          if(profileError) throw profileError;
+          setMessage("Compte créé.");
+          setAuthOpen(false);
+        } else {
+          setMessage("Compte créé. Vérifie ton e-mail, puis connecte-toi pour terminer ton profil.");
+          setAuthOpen(false);
+        }
       } else {
-        const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});
+        const {data,error}=await supabase.auth.signInWithPassword({email:email.trim(),password});
         if(error) throw error;
+        if(data.user){
+          const fullName=(data.user.user_metadata?.full_name as string|undefined)?.trim()||name.trim()||null;
+          const username=fullName?.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,20)||null;
+          const {error:profileError}=await supabase.from("profiles").upsert({id:data.user.id,full_name:fullName,username},{onConflict:"id"});
+          if(profileError) throw profileError;
+        }
         setAuthOpen(false);
         setMessage("Connexion réussie.");
       }
