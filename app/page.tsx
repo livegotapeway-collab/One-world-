@@ -36,14 +36,14 @@ export default function Home() {
     try {
       const { data: ps, error: postsError } = await supabase
         .from("community_posts")
-        .select("id,content,created_at,author_id,profiles:profiles!community_posts_author_id_fkey(id,full_name,username,country,bio,avatar_url)")
+        .select("id,content,created_at,author_id")
         .order("created_at",{ascending:false})
         .limit(30);
       if (!postsError) setPosts((ps||[]) as Post[]);
 
       const { data: prs, error: projectsError } = await supabase
         .from("projects")
-        .select("id,name,description,category,tech_stack,url,owner_id,profiles:profiles!projects_owner_id_fkey(id,full_name,username,country,bio,avatar_url)")
+        .select("id,name,description,category,tech_stack,url,owner_id")
         .order("created_at",{ascending:false})
         .limit(30);
       if (!projectsError) setProjects((prs||[]) as Project[]);
