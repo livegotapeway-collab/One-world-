@@ -67,6 +67,8 @@ export default function Home() {
     document.documentElement.dataset.theme=settings.theme==="Sombre"?"dark":"light";
     try { localStorage.setItem("oneworld-settings",JSON.stringify(settings)); } catch {}
   },[settings]);
+
+  useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({data}) => {
       if (!mounted) return;
