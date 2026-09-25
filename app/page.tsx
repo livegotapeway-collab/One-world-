@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient("https://ykeuhzossgqmjrpkejev.supabase.co", "sb_publishable_HwTLbkvbF6gk08WwVrFWQg_KwEfRh0Z");
 
 type Offer={id:number;title:string;description:string;price:number;owner:string};
 
@@ -18,6 +21,27 @@ export default function Home(){
  const [price,setPrice]=useState("");
  const [search,setSearch]=useState("");
  const [notice,setNotice]=useState("");
+ const [authOpen,setAuthOpen]=useState(false);
+ const [authMode,setAuthMode]=useState<"login"|"signup">("signup");
+ const [email,setEmail]=useState("");
+ const [password,setPassword]=useState("");
+ const [fullName,setFullName]=useState("");
+ const [user,setUser]=useState<any>(null);
+
+ async function auth(e:React.FormEvent){
+   e.preventDefault(); setNotice("");
+   if(authMode==="signup"){
+     const {error}=await supabase.auth.signUp({email,password,options:{data:{full_name:fullName}}});
+     if(error) return setNotice(error.message);
+     setNotice("Compte créé. Vérifie ton e-mail si Supabase demande une confirmation."); setAuthOpen(false);
+   } else {
+     const {data,error}=await supabase.auth.signInWithPassword({email,password});
+     if(error) return setNotice(error.message);
+     setUser(data.user); setNotice("Connexion réussie."); setAuthOpen(false);
+   }
+ }
+
+ async function logout(){ await supabase.auth.signOut(); setUser(null); setNotice("Déconnexion réussie."); }
 
  const filtered=useMemo(()=>offers.filter(o=>(o.title+" "+o.description+" "+o.owner).toLowerCase().includes(search.toLowerCase())),[offers,search]);
  const sales=offers.length*25;
@@ -35,10 +59,12 @@ export default function Home(){
   <header className="nav">
    <button className="brand" onClick={()=>setTab("Accueil")}>◎ ONE<span>WORLD</span></button>
    <nav>{["Accueil","Marché","Vendre","Tableau de bord"].map(x=><button key={x} className={tab===x?"active":""} onClick={()=>setTab(x)}>{x}</button>)}</nav>
-   <button className="primary small" onClick={()=>setTab("Vendre")}>+ Vendre</button>
+   <div className="auth-actions">{user?<><button className="secondary small" onClick={logout}>Déconnexion</button><button className="primary small" onClick={()=>setTab("Vendre")}>+ Vendre</button></>:<><button className="secondary small" onClick={()=>{setAuthMode("login");setAuthOpen(true)}}>Connexion</button><button className="primary small" onClick={()=>{setAuthMode("signup");setAuthOpen(true)}}>Inscription</button></>}</div>
   </header>
 
   {notice&&<div className="toast">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
+
+  {authOpen&&<div className="modal-backdrop" onClick={()=>setAuthOpen(false)}><div className="auth-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setAuthOpen(false)}>×</button><span className="pill">{authMode==="signup"?"CRÉER UN COMPTE":"SE CONNECTER"}</span><h2>{authMode==="signup"?"Rejoins ONEWORLD.":"Bon retour sur ONEWORLD."}</h2><p>{authMode==="signup"?"Crée ton compte gratuitement pour commencer.":"Connecte-toi pour accéder à ton espace."}</p><form onSubmit={auth}><input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Nom complet" required={authMode==="signup"}/><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Adresse e-mail" required/><input type="password" minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mot de passe (6 caractères minimum)" required/><button className="primary full">{authMode==="signup"?"Créer mon compte":"Se connecter"}</button></form><button className="switch-auth" onClick={()=>setAuthMode(authMode==="signup"?"login":"signup")}>{authMode==="signup"?"J’ai déjà un compte":"Créer un nouveau compte"}</button></div></div>}
 
   {tab==="Accueil"&&<section className="hero">
    <div><span className="pill">SAAS • RDC • MONDE</span><h1>Transforme tes compétences en <em>revenus.</em></h1>
