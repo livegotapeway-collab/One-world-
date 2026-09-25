@@ -1,17 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient("https://ykeuhzossgqmjrpkejev.supabase.co", "sb_publishable_HwTLbkvbF6gk08WwVrFWQg_KwEfRh0Z");
 
 type Offer={id:number;title:string;description:string;price:number;owner:string};
 
-const initialOffers:Offer[]=[
- {id:1,title:"Création de logo",description:"Logo professionnel pour petite entreprise.",price:25,owner:"Amina"},
- {id:2,title:"Montage vidéo TikTok",description:"Vidéo courte avec montage et sous-titres.",price:15,owner:"David"},
- {id:3,title:"Site vitrine",description:"Landing page moderne pour activité locale.",price:50,owner:"Lucas"},
-];
+const initialOffers:Offer[]=[];
 
 export default function Home(){
  const [tab,setTab]=useState("Accueil");
@@ -27,6 +23,9 @@ export default function Home(){
  const [password,setPassword]=useState("");
  const [fullName,setFullName]=useState("");
  const [user,setUser]=useState<any>(null);
+ useEffect(()=>{ supabase.auth.getUser().then(({data})=>setUser(data.user)); const {data}=supabase.auth.onAuthStateChange((_e,s)=>setUser(s?.user??null)); return ()=>data.subscription.unsubscribe(); },[]);
+ useEffect(()=>{ loadOffers(); },[]);
+ async function loadOffers(){ const {data,error}=await supabase.from("offers").select("*").order("created_at",{ascending:false}); if(error){setNotice(error.message);return;} setOffers((data||[]).map((o:any)=>({...o,owner:o.seller_id===user?.id?"Moi":"Membre"}))); }
 
  async function auth(e:React.FormEvent){
    e.preventDefault(); setNotice("");
@@ -37,7 +36,7 @@ export default function Home(){
    } else {
      const {data,error}=await supabase.auth.signInWithPassword({email,password});
      if(error) return setNotice(error.message);
-     setUser(data.user); setNotice("Connexion réussie."); setAuthOpen(false);
+     setUser(data.user); await loadOffers(); setNotice("Connexion réussie."); setAuthOpen(false);
    }
  }
 
@@ -50,7 +49,7 @@ export default function Home(){
  function publish(e:React.FormEvent){
    e.preventDefault();
    if(!title.trim()||!price)return;
-   setOffers([{id:Date.now(),title:title.trim(),description:description.trim()||"Service numérique proposé sur ONEWORLD.",price:Number(price),owner:"Moi"},...offers]);
+   if(!user){setAuthMode("login");setAuthOpen(true);return;} const {error}=await supabase.from("offers").insert({seller_id:user.id,title:title.trim(),description:description.trim()||"Service numérique proposé sur ONEWORLD.",price:Number(price)}); if(error){setNotice(error.message);return;} await loadOffers();
    setTitle("");setDescription("");setPrice("");setNotice("Offre publiée.");
    setTab("Marché");
  }
@@ -75,11 +74,11 @@ export default function Home(){
    <div className="hero-card"><span>TABLEAU DE BORD</span><strong>$ {sales.toFixed(0)}</strong><p>volume simulé</p><div className="bar"><i style={{width:"68%"}}/></div><div className="mini"><div><b>$ {commission.toFixed(0)}</b><span>commission</span></div><div><b>{offers.length}</b><span>offres</span></div></div></div>
   </section>}
 
-  {tab==="Marché"&&<section className="section"><div className="head"><div><span>PLACE DE MARCHÉ</span><h2>Trouve un service.</h2></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher…"/></div><div className="grid">{filtered.map(o=><article className="card" key={o.id}><span className="tag">SERVICE</span><h3>{o.title}</h3><p>{o.description}</p><small>Par {o.owner}</small><div className="price">$ {o.price.toFixed(2)}</div><button className="primary full" onClick={()=>setNotice("Démo : le paiement sera connecté dans l'étape suivante.")}>Acheter</button></article>)}</div></section>}
+  {tab==="Marché"&&<section className="section"><div className="head"><div><span>PLACE DE MARCHÉ</span><h2>Trouve un service.</h2></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher…"/></div><div className="grid">{filtered.map(o=><article className="card" key={o.id}><span className="tag">SERVICE</span><h3>{o.title}</h3><p>{o.description}</p><small>Par {o.owner}</small><div className="price">$ {o.price.toFixed(2)}</div><button className="primary full" onClick={async()=>{if(!user){setAuthMode("login");setAuthOpen(true);return;} const {error}=await supabase.from("orders").insert({buyer_id:user.id,seller_id:o.seller_id,offer_id:o.id,amount:o.price}); setNotice(error?error.message:"Commande enregistrée. Le paiement mobile sera débité quand le prestataire sera connecté.");}}>Acheter</button></article>)}</div></section>}
 
-  {tab==="Vendre"&&<section className="section narrow"><span>CRÉER UNE OFFRE</span><h2>Publie ton service.</h2><p>Cette première version fonctionne directement dans le navigateur. Les données de démonstration sont locales.</p><form onSubmit={publish}><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nom du service" required/><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Décris ce que tu proposes…"/><input type="number" min="1" value={price} onChange={e=>setPrice(e.target.value)} placeholder="Prix en USD" required/><button className="primary">Publier l'offre</button></form></section>}
+  {tab==="Vendre"&&<section className="section narrow"><span>CRÉER UNE OFFRE</span><h2>Publie ton service.</h2><p>Les offres sont enregistrées dans la base de données ONEWORLD et liées au compte vendeur.</p><form onSubmit={publish}><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nom du service" required/><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Décris ce que tu proposes…"/><input type="number" min="1" value={price} onChange={e=>setPrice(e.target.value)} placeholder="Prix en USD" required/><button className="primary">Publier l'offre</button></form></section>}
 
-  {tab==="Tableau de bord"&&<section className="section"><span>MON ACTIVITÉ</span><h2>Tableau de bord.</h2><div className="dashboard"><article><span>Offres</span><b>{offers.length}</b></article><article><span>Volume simulé</span><b>$ {sales.toFixed(0)}</b></article><article><span>Commission 10%</span><b>$ {commission.toFixed(0)}</b></article></div><div className="note"><b>Prochaine étape :</b> connecter l'authentification, une base de données et un prestataire de paiement compatible avec la RDC avant de traiter de vrais paiements.</div></section>}
+  {tab==="Tableau de bord"&&<section className="section"><span>MON ACTIVITÉ</span><h2>Tableau de bord.</h2><div className="dashboard"><article><span>Offres</span><b>{offers.length}</b></article><article><span>Volume simulé</span><b>$ {sales.toFixed(0)}</b></article><article><span>Commission 10%</span><b>$ {commission.toFixed(0)}</b></article></div><div className="note"><b>Activité réelle :</b> tes offres et commandes sont enregistrées dans la base de données. Le paiement mobile réel nécessite maintenant les identifiants/API du prestataire choisi.</div></section>}
 
   <footer>◎ ONEWORLD — Une plateforme numérique construite pour connecter les talents.</footer>
  </main>
