@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient("https://ykeuhzossgqmjrpkejev.supabase.co", "sb_publishable_HwTLbkvbF6gk08WwVrFWQg_KwEfRh0Z");
 
-type Offer={id:number;title:string;description:string;price:number;owner:string};
+type Offer={id:number;title:string;description:string;price:number;owner:string;seller_id:string};
 
 const initialOffers:Offer[]=[];
 
@@ -46,7 +46,7 @@ export default function Home(){
  const sales=offers.length*25;
  const commission=sales*.1;
 
- function publish(e:React.FormEvent){
+ async function publish(e:React.FormEvent){
    e.preventDefault();
    if(!title.trim()||!price)return;
    if(!user){setAuthMode("login");setAuthOpen(true);return;} const {error}=await supabase.from("offers").insert({seller_id:user.id,title:title.trim(),description:description.trim()||"Service numérique proposé sur ONEWORLD.",price:Number(price)}); if(error){setNotice(error.message);return;} await loadOffers();
