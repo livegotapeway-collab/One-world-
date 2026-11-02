@@ -8,3 +8,6 @@
 
 /* Community photos: preserve the complete original image without cropping. */
 .community-post-image{display:block;width:100%;height:auto;max-height: min(78vh, 900px);object-fit:contain;object-position:center;background:#f1f4f1;border-radius:8px;margin:14px auto 4px;}
+
+/* Community video playback: responsive, native controls, no cropping. */
+.community-post-video{display:block;width:100%;height:auto;max-height:min(78vh,900px);object-fit:contain;object-position:center;background:#101510;border-radius:10px;margin:14px auto 4px;}
