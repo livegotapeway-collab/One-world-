@@ -11,3 +11,21 @@
 
 /* Community video playback: responsive, native controls, no cropping. */
 .community-post-video{display:block;width:100%;height:auto;max-height:min(78vh,900px);object-fit:contain;object-position:center;background:#101510;border-radius:10px;margin:14px auto 4px;}
+
+/* Social feed, notification center and follower indicators */
+.social-feed-tabs{margin:0 0 22px}
+.notification-badge{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;margin-left:6px;border-radius:20px;background:#d84b45;color:#fff;font-size:9px;font-weight:800}
+.notification-card{display:flex;align-items:center;gap:14px;padding:17px 20px;margin:9px 0;background:#fff;border:1px solid #e5eae5;border-radius:9px;cursor:pointer}
+.notification-unread{background:#f0f7f1;border-color:#c8dfce}
+.notification-icon{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:50%;background:#e7f2e9;color:#176b45;font-size:19px;font-weight:800}
+.notification-card>div{flex:1;color:#647168;font-size:12px;line-height:1.6}
+.notification-card>div b{color:#1d3024}
+.notification-card small{display:block;color:#929d94;font-size:10px;margin-top:4px}
+.notification-dot{width:8px;height:8px;border-radius:50%;background:#27935a}
+.post-actions{display:flex;gap:17px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #edf0ed;margin-top:13px}
+.post-actions button{padding:4px 0}
+.comment-row{padding:7px 10px;background:#f6f8f6;border-radius:6px;margin:5px 0;font-size:12px;color:#59665d}
+.comment-row small{font-weight:700;color:#28734b}
+.comment-entry{display:flex;gap:9px;margin-top:10px}
+.comment-entry input{flex:1;min-width:0;border:1px solid #e1e7e1;border-radius:6px;padding:11px 12px;font-size:12px;background:#fbfcfb}
+@media(max-width:700px){.post-actions{gap:12px}.post-actions button{font-size:10px}.notification-card{padding:13px}.comment-entry input{font-size:11px}}
