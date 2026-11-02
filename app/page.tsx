@@ -1,85 +1,39 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient("https://ykeuhzossgqmjrpkejev.supabase.co", "sb_publishable_HwTLbkvbF6gk08WwVrFWQg_KwEfRh0Z");
-
-type Offer={id:number;title:string;description:string;price:number;owner:string;seller_id:string};
-
-const initialOffers:Offer[]=[];
-
+const supabase=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL||"https://ykeuhzossgqmjrpkejev.supabase.co",process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||"sb_publishable_HwTLbkvbF6gk08WwVrFWQg_KwEfRh0Z");
+type Offer={id:number;title:string;description:string;price:number;seller_id:string};
+const categories=[["✳","Design & créativité","Logos, visuels, identité"],["↗","Marketing digital","Réseaux sociaux, stratégie"],["⌘","Technologie","Sites web, développement"],["▤","Documents & modèles","CV, présentations, guides"]];
+function Arrow(){return <span aria-hidden="true">↗</span>}
 export default function Home(){
- const [tab,setTab]=useState("Accueil");
- const [offers,setOffers]=useState(initialOffers);
- const [title,setTitle]=useState("");
- const [description,setDescription]=useState("");
- const [price,setPrice]=useState("");
- const [search,setSearch]=useState("");
- const [notice,setNotice]=useState("");
- const [authOpen,setAuthOpen]=useState(false);
- const [authMode,setAuthMode]=useState<"login"|"signup">("signup");
- const [email,setEmail]=useState("");
- const [password,setPassword]=useState("");
- const [fullName,setFullName]=useState("");
- const [user,setUser]=useState<any>(null);
- useEffect(()=>{ supabase.auth.getUser().then(({data})=>setUser(data.user)); const {data}=supabase.auth.onAuthStateChange((_e,s)=>setUser(s?.user??null)); return ()=>data.subscription.unsubscribe(); },[]);
- useEffect(()=>{ loadOffers(); },[]);
- async function loadOffers(){ const {data,error}=await supabase.from("offers").select("*").order("created_at",{ascending:false}); if(error){setNotice(error.message);return;} setOffers((data||[]).map((o:any)=>({...o,owner:o.seller_id===user?.id?"Moi":"Membre"}))); }
-
- async function auth(e:React.FormEvent){
-   e.preventDefault(); setNotice("");
-   if(authMode==="signup"){
-     const {error}=await supabase.auth.signUp({email,password,options:{data:{full_name:fullName}}});
-     if(error) return setNotice(error.message);
-     setNotice("Compte créé. Vérifie ton e-mail si Supabase demande une confirmation."); setAuthOpen(false);
-   } else {
-     const {data,error}=await supabase.auth.signInWithPassword({email,password});
-     if(error) return setNotice(error.message);
-     setUser(data.user); await loadOffers(); setNotice("Connexion réussie."); setAuthOpen(false);
-   }
- }
-
- async function logout(){ await supabase.auth.signOut(); setUser(null); setNotice("Déconnexion réussie."); }
-
- const filtered=useMemo(()=>offers.filter(o=>(o.title+" "+o.description+" "+o.owner).toLowerCase().includes(search.toLowerCase())),[offers,search]);
- const sales=offers.length*25;
- const commission=sales*.1;
-
- async function publish(e:React.FormEvent){
-   e.preventDefault();
-   if(!title.trim()||!price)return;
-   if(!user){setAuthMode("login");setAuthOpen(true);return;} const {error}=await supabase.from("offers").insert({seller_id:user.id,title:title.trim(),description:description.trim()||"Service numérique proposé sur ONEWORLD.",price:Number(price)}); if(error){setNotice(error.message);return;} await loadOffers();
-   setTitle("");setDescription("");setPrice("");setNotice("Offre publiée.");
-   setTab("Marché");
- }
-
- return <main>
-  <header className="nav">
-   <button className="brand" onClick={()=>setTab("Accueil")}>◎ ONE<span>WORLD</span></button>
-   <nav>{["Accueil","Marché","Vendre","Tableau de bord"].map(x=><button key={x} className={tab===x?"active":""} onClick={()=>setTab(x)}>{x}</button>)}</nav>
-   <div className="auth-actions">{user?<><button className="secondary small" onClick={logout}>Déconnexion</button><button className="primary small" onClick={()=>setTab("Vendre")}>+ Vendre</button></>:<><button className="secondary small" onClick={()=>{setAuthMode("login");setAuthOpen(true)}}>Connexion</button><button className="primary small" onClick={()=>{setAuthMode("signup");setAuthOpen(true)}}>Inscription</button></>}</div>
-  </header>
-
-  {notice&&<div className="toast">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
-
-  {authOpen&&<div className="modal-backdrop" onClick={()=>setAuthOpen(false)}><div className="auth-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setAuthOpen(false)}>×</button><span className="pill">{authMode==="signup"?"CRÉER UN COMPTE":"SE CONNECTER"}</span><h2>{authMode==="signup"?"Rejoins ONEWORLD.":"Bon retour sur ONEWORLD."}</h2><p>{authMode==="signup"?"Crée ton compte gratuitement pour commencer.":"Connecte-toi pour accéder à ton espace."}</p><form onSubmit={auth}><input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Nom complet" required={authMode==="signup"}/><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Adresse e-mail" required/><input type="password" minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Mot de passe (6 caractères minimum)" required/><button className="primary full">{authMode==="signup"?"Créer mon compte":"Se connecter"}</button></form><button className="switch-auth" onClick={()=>setAuthMode(authMode==="signup"?"login":"signup")}>{authMode==="signup"?"J’ai déjà un compte":"Créer un nouveau compte"}</button></div></div>}
-
-  {tab==="Accueil"&&<section className="hero">
-   <div><span className="pill">SAAS • RDC • MONDE</span><h1>Transforme tes compétences en <em>revenus.</em></h1>
-   <p>ONEWORLD permet de présenter tes services numériques, trouver des clients et suivre ton activité depuis ton téléphone.</p>
-   <div className="actions"><button className="primary" onClick={()=>setTab("Vendre")}>Commencer à vendre →</button><button className="secondary" onClick={()=>setTab("Marché")}>Explorer le marché</button></div>
-   <div className="stats"><b>{offers.length}+</b><span>offres</span><b>10%</b><span>commission plateforme*</span></div>
-   <small>*Exemple de modèle économique : les vrais paiements doivent être connectés à un prestataire de paiement.</small></div>
-   <div className="hero-card"><span>TABLEAU DE BORD</span><strong>$ {sales.toFixed(0)}</strong><p>volume simulé</p><div className="bar"><i style={{width:"68%"}}/></div><div className="mini"><div><b>$ {commission.toFixed(0)}</b><span>commission</span></div><div><b>{offers.length}</b><span>offres</span></div></div></div>
-  </section>}
-
-  {tab==="Marché"&&<section className="section"><div className="head"><div><span>PLACE DE MARCHÉ</span><h2>Trouve un service.</h2></div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher…"/></div><div className="grid">{filtered.map(o=><article className="card" key={o.id}><span className="tag">SERVICE</span><h3>{o.title}</h3><p>{o.description}</p><small>Par {o.owner}</small><div className="price">$ {o.price.toFixed(2)}</div><button className="primary full" onClick={async()=>{if(!user){setAuthMode("login");setAuthOpen(true);return;} const {error}=await supabase.from("orders").insert({buyer_id:user.id,seller_id:o.seller_id,offer_id:o.id,amount:o.price}); setNotice(error?error.message:"Commande enregistrée. Le paiement mobile sera débité quand le prestataire sera connecté.");}}>Acheter</button></article>)}</div></section>}
-
-  {tab==="Vendre"&&<section className="section narrow"><span>CRÉER UNE OFFRE</span><h2>Publie ton service.</h2><p>Les offres sont enregistrées dans la base de données ONEWORLD et liées au compte vendeur.</p><form onSubmit={publish}><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Nom du service" required/><textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Décris ce que tu proposes…"/><input type="number" min="1" value={price} onChange={e=>setPrice(e.target.value)} placeholder="Prix en USD" required/><button className="primary">Publier l'offre</button></form></section>}
-
-  {tab==="Tableau de bord"&&<section className="section"><span>MON ACTIVITÉ</span><h2>Tableau de bord.</h2><div className="dashboard"><article><span>Offres</span><b>{offers.length}</b></article><article><span>Volume simulé</span><b>$ {sales.toFixed(0)}</b></article><article><span>Commission 10%</span><b>$ {commission.toFixed(0)}</b></article></div><div className="note"><b>Activité réelle :</b> tes offres et commandes sont enregistrées dans la base de données. Le paiement mobile réel nécessite maintenant les identifiants/API du prestataire choisi.</div></section>}
-
-  <footer>◎ ONEWORLD — Une plateforme numérique construite pour connecter les talents.</footer>
+ const [tab,setTab]=useState("Accueil"),[offers,setOffers]=useState<Offer[]>([]),[mine,setMine]=useState<Offer[]>([]),[user,setUser]=useState<any>(null),[notice,setNotice]=useState(""),[loading,setLoading]=useState(true);
+ const [modal,setModal]=useState(false),[mode,setMode]=useState<"login"|"signup">("signup"),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[name,setName]=useState("");
+ const [search,setSearch]=useState(""),[category,setCategory]=useState("Tout"),[title,setTitle]=useState(""),[description,setDescription]=useState(""),[price,setPrice]=useState("");
+ useEffect(()=>{supabase.auth.getUser().then(({data})=>setUser(data.user));const {data}=supabase.auth.onAuthStateChange((_e,s)=>setUser(s?.user??null));return()=>data.subscription.unsubscribe()},[]);
+ useEffect(()=>{load()},[]);
+ useEffect(()=>{if(user)loadMine()},[user]);
+ async function load(){setLoading(true);const {data,error}=await supabase.from("offers").select("*").order("created_at",{ascending:false});if(error){setOffers([])}else setOffers((data||[]) as Offer[]);setLoading(false)}
+ async function loadMine(){const {data}=await supabase.from("offers").select("*").eq("seller_id",user.id).order("created_at",{ascending:false});setMine((data||[]) as Offer[])}
+ async function auth(e:FormEvent){e.preventDefault();const result=mode==="signup"?await supabase.auth.signUp({email,password,options:{data:{full_name:name}}}):await supabase.auth.signInWithPassword({email,password});if(result.error){setNotice(result.error.message);return}setNotice(mode==="signup"?"Inscription envoyée. Vérifie ton e-mail pour confirmer ton compte.":"Connexion réussie.");setModal(false)}
+ async function publish(e:FormEvent){e.preventDefault();if(!user){setMode("login");setModal(true);return}const {error}=await supabase.from("offers").insert({seller_id:user.id,title:title.trim(),description:description.trim()||"Offre numérique proposée sur ONE WORLD.",price:Number(price)});if(error){setNotice(error.message);return}setTitle("");setDescription("");setPrice("");await load();await loadMine();setNotice("Ton offre est publiée.");setTab("Marché")}
+ async function logout(){await supabase.auth.signOut();setNotice("Déconnexion réussie.");setTab("Accueil")}
+ const filtered=useMemo(()=>offers.filter(o=>(o.title+" "+o.description).toLowerCase().includes(search.toLowerCase())&&(category==="Tout"||o.title.toLowerCase().includes(category.toLowerCase()))),[offers,search,category]);
+ function openAuth(m:"login"|"signup"){setMode(m);setModal(true)}
+ return <main className="site-shell">
+ <header className="topbar"><a className="wordmark" href="#" onClick={e=>{e.preventDefault();setTab("Accueil")}}><span className="brand-symbol">o</span><span>one<span className="brand-light">world</span></span></a>
+ <nav className="main-nav">{["Accueil","Marché","Vendre","Tableau de bord"].map(x=><button key={x} className={tab===x?"nav-link selected":"nav-link"} onClick={()=>setTab(x)}>{x}</button>)}</nav>
+ <div className="top-actions">{user?<><span className="user-chip"><i className="online-dot"/>{user.user_metadata?.full_name||user.email}</span><button className="button button-ghost compact" onClick={logout}>Déconnexion</button><button className="button button-green compact" onClick={()=>setTab("Vendre")}>+ Vendre</button></>:<><button className="button button-ghost compact" onClick={()=>openAuth("login")}>Connexion</button><button className="button button-green compact" onClick={()=>openAuth("signup")}>Créer un compte <Arrow/></button></>}</div>
+ <button className="mobile-toggle" onClick={()=>document.querySelector(".main-nav")?.classList.toggle("nav-open")}>☰</button></header>
+ {notice&&<div className="notice" role="status">{notice}<button onClick={()=>setNotice("")}>×</button></div>}
+ {tab==="Accueil"&&<><section className="hero-section"><div className="hero-copy"><div className="eyebrow"><i className="eyebrow-dot"/> L'ÉCONOMIE NUMÉRIQUE, SANS FRONTIÈRES</div><h1>Le talent n'a<br/>pas de <span>frontières.</span></h1><p className="hero-description">Découvre des produits numériques, partage tes compétences et développe tes revenus. Une seule plateforme pour créer des opportunités, partout en Afrique et dans le monde.</p><div className="hero-buttons"><button className="button button-green button-large" onClick={()=>setTab("Marché")}>Explorer le marché <Arrow/></button><button className="button button-outline button-large" onClick={()=>user?setTab("Vendre"):openAuth("signup")}>Devenir vendeur</button></div><div className="hero-proof"><div className="proof-avatars"><span>A</span><span>J</span><span>M</span><span>+</span></div><div><strong>Une communauté qui construit</strong><small>Les talents d'ici, les opportunités partout.</small></div></div></div>
+ <div className="hero-art"><div className="art-glow"/><div className="art-orbit orbit-one"/><div className="art-orbit orbit-two"/><div className="art-center"><span className="art-mark">o</span><strong>ONE<br/>WORLD</strong><small>CREATE · CONNECT · GROW</small></div><div className="float-card float-top"><span className="float-icon">↗</span><span><b>Nouvelle opportunité</b><small>Le monde est ton marché</small></span></div><div className="float-card float-bottom"><span className="float-icon">✳</span><span><b>Ton prochain projet</b><small>Commence ici, aujourd'hui</small></span></div><i className="orbit-point point-a"/><i className="orbit-point point-b"/><i className="orbit-point point-c"/></div><div className="hero-bottom-note"><span>01 / 03</span><span className="note-line"/><span>UNE PLATEFORME. MILLE POSSIBILITÉS.</span></div></section>
+ <section className="trust-strip"><span>CONÇU POUR UN MONDE CONNECTÉ</span><div><b>Afrique</b><i/><b>Europe</b><i/><b>Amériques</b><i/><b>Asie</b></div></section>
+ <section className="content-section"><div className="section-heading"><div><span className="section-kicker">EXPLORE LES POSSIBILITÉS</span><h2>Tout commence<br/>par une idée.</h2></div><p>Des ressources et des services numériques pour transformer tes projets en réalité.</p></div><div className="category-grid">{categories.map(c=><button className="category-card" key={c[1]} onClick={()=>{setCategory("Tout");setTab("Marché")}}><span className="category-icon">{c[0]}</span><span className="category-name">{c[1]}</span><span className="category-detail">{c[2]}</span><span className="category-arrow"><Arrow/></span></button>)}</div></section>
+ <section className="seller-banner"><div><span className="section-kicker">PASSE À L'ACTION</span><h2>Ce que tu sais faire<br/>a de la valeur.</h2><p>Publie ton premier produit ou service et présente ton travail à une communauté ouverte sur le monde.</p></div><button className="button button-light button-large" onClick={()=>user?setTab("Vendre"):openAuth("signup")}>Lancer ma boutique <Arrow/></button><div className="banner-watermark">o</div></section></>}
+ {tab==="Marché"&&<section className="page-section"><div className="page-heading"><div><span className="section-kicker">LE MARCHÉ ONE WORLD</span><h1>Des idées à découvrir.</h1><p>Explore les produits et services proposés par la communauté.</p></div><button className="button button-green" onClick={()=>user?setTab("Vendre"):openAuth("signup")}>+ Publier une offre</button></div><div className="market-toolbar"><div className="search-box">⌕<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher un produit ou un service..."/></div><div className="filter-pills">{["Tout","Design","Marketing","Technologie"].map(x=><button key={x} className={category===x?"filter-pill active-filter":"filter-pill"} onClick={()=>setCategory(x)}>{x}</button>)}</div></div>{loading?<div className="empty-state">Chargement du marché...</div>:filtered.length?<div className="offer-grid">{filtered.map(o=><article className="offer-card" key={o.id}><div className="offer-cover"><span className="cover-mark">o</span><span className="cover-label">ONE WORLD MARKET</span></div><div className="offer-body"><span className="offer-type">PRODUIT NUMÉRIQUE</span><h3>{o.title}</h3><p>{o.description}</p><div className="offer-footer"><strong>{Number(o.price).toFixed(2)} $</strong><button className="button button-dark compact" onClick={()=>{if(!user)openAuth("login");else setNotice("Le paiement sera disponible après connexion du prestataire de paiement.")}}>Voir l'offre <Arrow/></button></div></div></article>)}</div>:<div className="empty-state"><span className="empty-icon">▦</span><h3>Le marché prend forme.</h3><p>Aucune offre ne correspond à ta recherche. Reviens bientôt ou publie la première offre.</p><button className="button button-green" onClick={()=>user?setTab("Vendre"):openAuth("signup")}>Publier la première offre <Arrow/></button></div>}</section>}
+ {tab==="Vendre"&&<section className="page-section form-page"><div className="page-heading"><div><span className="section-kicker">ESPACE VENDEUR</span><h1>Donne vie à ton offre.</h1><p>Présente clairement ce que tu proposes et fixe ton prix.</p></div></div>{!user?<div className="login-prompt"><h3>Connecte-toi pour commencer.</h3><p>La publication d'offres est réservée aux membres.</p><button className="button button-green" onClick={()=>openAuth("login")}>Se connecter <Arrow/></button></div>:<form className="offer-form" onSubmit={publish}><label>Nom de ton offre<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Ex. : Création d'un logo professionnel" required maxLength={90}/></label><label>Description<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Décris ce que le client recevra, les avantages et les délais..." rows={5} maxLength={1000}/></label><label>Prix en dollars américains (USD)<div className="price-input"><span>$</span><input type="number" min="1" step="0.01" value={price} onChange={e=>setPrice(e.target.value)} placeholder="25.00" required/></div></label><div className="form-hint">Conseil : utilise un titre précis et une description simple pour aider les clients à comprendre ton offre.</div><button className="button button-green button-large">Publier mon offre <Arrow/></button></form>}</section>}
+ {tab==="Tableau de bord"&&<section className="page-section"><div className="page-heading"><div><span className="section-kicker">TON ESPACE PERSONNEL</span><h1>Bienvenue{user?.user_metadata?.full_name?", "+user.user_metadata.full_name.split(" ")[0]:""}.</h1><p>Retrouve ici les informations principales de ton activité.</p></div></div>{!user?<div className="login-prompt"><h3>Ton espace t'attend.</h3><p>Connecte-toi pour consulter tes offres et ton activité.</p><button className="button button-green" onClick={()=>openAuth("login")}>Se connecter <Arrow/></button></div>:<><div className="dashboard-grid"><article><span>MES OFFRES</span><strong>{mine.length}</strong><small>Offres publiées</small></article><article><span>STATUT DU COMPTE</span><strong className="status-text">Actif</strong><small>Compte connecté</small></article><article><span>PAIEMENTS</span><strong className="status-text">À configurer</strong><small>Mobile Money et cartes</small></article></div><div className="dashboard-list"><div className="list-heading"><h3>Mes dernières offres</h3><button className="text-button" onClick={()=>setTab("Vendre")}>Ajouter une offre <Arrow/></button></div>{mine.length?mine.map(o=><div className="dashboard-offer" key={o.id}><span className="offer-mini-icon">o</span><span><b>{o.title}</b><small>Produit numérique</small></span><strong>{Number(o.price).toFixed(2)} $</strong></div>):<p className="muted-copy">Tu n'as pas encore publié d'offre.</p>}</div></>}</section>}
+ <footer className="site-footer"><a className="wordmark" href="#" onClick={e=>{e.preventDefault();setTab("Accueil")}}><span className="brand-symbol">o</span><span>one<span className="brand-light">world</span></span></a><p>Les talents d'ici. Les opportunités partout.</p><span>© 2026 ONE WORLD. Tous droits réservés.</span></footer>
+ {modal&&<div className="modal-backdrop" onClick={()=>setModal(false)}><div className="auth-modal" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setModal(false)}>×</button><span className="section-kicker">{mode==="signup"?"REJOINDRE ONE WORLD":"HEUREUX DE TE REVOIR"}</span><h2>{mode==="signup"?"Crée ton compte.":"Connecte-toi."}</h2><p>{mode==="signup"?"Une nouvelle opportunité commence ici.":"Accède à ton espace personnel."}</p><form onSubmit={auth}>{mode==="signup"&&<label>Nom complet<input value={name} onChange={e=>setName(e.target.value)} placeholder="Ton nom" required/></label>}<label>Adresse e-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="nom@exemple.com" required/></label><label>Mot de passe<input type="password" minLength={6} value={password} onChange={e=>setPassword(e.target.value)} placeholder="6 caractères minimum" required/></label><button className="button button-green button-large">{mode==="signup"?"Créer mon compte":"Se connecter"} <Arrow/></button></form><button className="switch-auth" onClick={()=>setMode(mode==="signup"?"login":"signup")}>{mode==="signup"?"J'ai déjà un compte":"Créer un compte gratuitement"}</button></div></div>}
  </main>
 }
