@@ -13,6 +13,17 @@ export default function Home(){
  useEffect(()=>{supabase.auth.getUser().then(({data})=>setUser(data.user));const {data}=supabase.auth.onAuthStateChange((_e,s)=>setUser(s?.user??null));return()=>data.subscription.unsubscribe()},[]);
  useEffect(()=>{load()},[]);
  useEffect(()=>{if(tab==="Communauté")loadPosts();if(tab==="Notifications")loadNotifications();if(tab==="Messagerie"&&user)loadInbox();if(user)loadFollowerCount(user.id)},[tab,user]);
+ useEffect(()=>{
+  if(!user||tab!=="Messagerie")return;
+  const channel=supabase.channel("direct-messages-"+user.id)
+   .on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages",filter:"recipient_id=eq."+user.id},(payload:any)=>{
+    const message=payload.new;
+    void loadInbox();
+    if(activeChat&&message.sender_id===activeChat.id)void loadThread(activeChat.id);
+   })
+   .subscribe();
+  return()=>{void supabase.removeChannel(channel)};
+ },[user?.id,tab,activeChat?.id]);
  useEffect(()=>{if(user){loadMine();loadOrders();loadProfile()}else{setMine([]);setOrders([]);setProfile({full_name:"",username:"",country:"RDC",bio:"",avatar_url:""})}},[user]);
  async function loadPosts(){const {data,error}=await supabase.from("community_posts").select("id,author_id,content,image_url,video_url,created_at").order("created_at",{ascending:false}).limit(80);if(error){setNotice("Chargement des publications impossible : "+error.message);return}const rows=data||[];const ids=rows.map((p:any)=>p.id);if(!ids.length){setPosts([]);return}const authorIds=[...new Set(rows.map((p:any)=>p.author_id))];const [likes,comments,reposts,profiles,follows,followers]=await Promise.all([supabase.from("post_likes").select("post_id,user_id").in("post_id",ids),supabase.from("post_comments").select("id,post_id,user_id,content,created_at").in("post_id",ids).order("created_at"),supabase.from("post_reposts").select("post_id,user_id").in("post_id",ids),supabase.from("profiles").select("id,full_name,username,avatar_url").in("id",authorIds),user?supabase.from("follows").select("following_id").eq("follower_id",user.id):Promise.resolve({data:[]}),supabase.from("follows").select("following_id").in("following_id",authorIds)]);const enriched=rows.map((p:any)=>({...p,likes:likes.data?.filter((x:any)=>x.post_id===p.id)||[],comments:comments.data?.filter((x:any)=>x.post_id===p.id)||[],reposts:reposts.data?.filter((x:any)=>x.post_id===p.id)||[],author:profiles.data?.find((x:any)=>x.id===p.author_id),followers:followers.data?.filter((x:any)=>x.following_id===p.author_id).length||0,following:(follows.data||[]).some((x:any)=>x.following_id===p.author_id)}));setPosts(enriched)}
  async function loadFollowerCount(profileId:string){const {count,error}=await supabase.from("follows").select("*",{count:"exact",head:true}).eq("following_id",profileId);if(!error)setFollowerCount(count||0)}
