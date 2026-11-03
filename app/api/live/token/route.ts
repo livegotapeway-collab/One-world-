@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       const { count, error: countError } = await supabase
         .from("follows").select("*", { count: "exact", head: true }).eq("following_id", user.id);
       if (countError) return NextResponse.json({ error: "Impossible de vérifier tes abonnés." }, { status: 500 });
-      if ((count || 0) < 500) return NextResponse.json({ error: "Il faut au moins 500 abonnés pour lancer un LIVE." }, { status: 403 });
+      const isTestAccount = (user.email || "").toLowerCase() === "kavasergio2022@gmail.com";
+      if ((count || 0) < 500 && !isTestAccount) return NextResponse.json({ error: "Il faut au moins 500 abonnés pour lancer un LIVE." }, { status: 403 });
 
       roomName = "ow-" + crypto.randomUUID();
       const title = String(body?.title || "LIVE ONE WORLD").trim().slice(0, 100) || "LIVE ONE WORLD";
