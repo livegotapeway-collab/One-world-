@@ -81,7 +81,7 @@ export default function LiveStudio({ user, followerCount }: { user: any; followe
           onConnected={() => setLiveStatus("Connecté à la salle LIVE.")}
           onDisconnected={(reason) => setLiveStatus("Connexion interrompue" + (reason ? " : " + String(reason) : ".") + " Tu peux réessayer ou quitter la salle.")}
           onError={(error) => setNotice("Erreur LiveKit : " + (error?.message || "connexion impossible"))}
-          onMediaDeviceFailure={(failure, kind) => setNotice((kind === "audio" ? "Microphone" : kind === "video" ? "Caméra" : "Appareil") + " indisponible (" + String(failure || "autorisation refusée") + "). Vérifie les autorisations du navigateur.")}
+          onMediaDeviceFailure={(failure, kind) => setNotice((kind === "audioinput" ? "Microphone" : kind === "videoinput" ? "Caméra" : "Appareil") + " indisponible (" + String(failure || "autorisation refusée") + "). Vérifie les autorisations du navigateur.")}
           style={{ height: "100%" }}
         >
           <VideoConference />
