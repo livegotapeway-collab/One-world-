@@ -13,7 +13,8 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "livekit-client": "^2.15.6",
-    "livekit-server-sdk": "^2.13.3"
+    "livekit-server-sdk": "^2.13.3",
+    "@livekit/components-react": "^2.9.14"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
