@@ -1,7 +1,8 @@
 "use client";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import LiveStudio from "./components/LiveStudio";
+import dynamic from "next/dynamic";
+const LiveStudio = dynamic(() => import("./components/LiveStudio"), { ssr: false, loading: () => <div className="empty-state">Chargement de ONE WORLD LIVE…</div> });
 type Offer={id:number;title:string;description:string;price:number;seller_id:string};
 const categories=[["✳","Design & créativité","Logos, visuels, identité"],["↗","Marketing digital","Réseaux sociaux, stratégie"],["⌘","Technologie","Sites web, développement"],["▤","Documents & modèles","CV, présentations, guides"]];
 function Arrow(){return <span aria-hidden="true">↗</span>}
