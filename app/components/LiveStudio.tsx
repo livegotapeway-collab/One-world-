@@ -16,6 +16,7 @@ export default function LiveStudio({ user, followerCount }: { user: any; followe
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [liveStatus, setLiveStatus] = useState("Connexion à la salle LIVE…");
 
   const loadStreams = useCallback(async () => {
     const { data, error } = await supabase.from("live_streams")
@@ -71,11 +72,23 @@ export default function LiveStudio({ user, followerCount }: { user: any; followe
         {!connection.isHost && <button className="button button-ghost" onClick={() => setConnection(null)}>Quitter</button>}
       </div>
       <div style={{ height: "min(68vh, 680px)", minHeight: 360, overflow: "hidden", borderRadius: 18, background: "#101713" }}>
-        <LiveKitRoom token={connection.token} serverUrl={connection.serverUrl} connect audio video onDisconnected={() => setConnection(null)} style={{ height: "100%" }}>
+        <LiveKitRoom
+          token={connection.token}
+          serverUrl={connection.serverUrl}
+          connect
+          audio
+          video
+          onConnected={() => setLiveStatus("Connecté à la salle LIVE.")}
+          onDisconnected={(reason) => setLiveStatus("Connexion interrompue" + (reason ? " : " + String(reason) : ".") + " Tu peux réessayer ou quitter la salle.")}
+          onError={(error) => setNotice("Erreur LiveKit : " + (error?.message || "connexion impossible"))}
+          onMediaDeviceFailure={(failure, kind) => setNotice((kind === "audio" ? "Microphone" : kind === "video" ? "Caméra" : "Appareil") + " indisponible (" + String(failure || "autorisation refusée") + "). Vérifie les autorisations du navigateur.")}
+          style={{ height: "100%" }}
+        >
           <VideoConference />
         </LiveKitRoom>
       </div>
-      {notice && <p className="notice" role="status">{notice}</p>}
+      <p className="notice" role="status">{liveStatus}</p>
+      {notice && <p className="notice" role="alert">{notice}</p>}
     </section>;
   }
 
