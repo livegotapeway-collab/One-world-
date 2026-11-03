@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 
+// Live token endpoint: server-only credentials are validated before issuing tokens.
 export async function POST(request: NextRequest) {
   try {
     const authorization = request.headers.get("authorization") || "";
