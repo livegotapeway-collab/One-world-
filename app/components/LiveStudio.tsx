@@ -9,6 +9,8 @@ type Stream = { id: string; title: string; room_name: string; host_id: string; s
 type Connection = { token: string; serverUrl: string; roomName: string; streamId: string; isHost: boolean };
 
 export default function LiveStudio({ user, followerCount }: { user: any; followerCount: number }) {
+  const isTestAccount = (user?.email || "").toLowerCase() === "kavasergio2022@gmail.com";
+  const canStartLive = followerCount >= 500 || isTestAccount;
   const [streams, setStreams] = useState<Stream[]>([]);
   const [connection, setConnection] = useState<Connection | null>(null);
   const [title, setTitle] = useState("");
@@ -81,10 +83,10 @@ export default function LiveStudio({ user, followerCount }: { user: any; followe
     <div className="page-heading"><div><span className="section-kicker">DIFFUSION EN DIRECT</span><h1>ONE WORLD LIVE.</h1><p>Partage tes moments en vidéo avec la communauté.</p></div><button className="button button-ghost" onClick={() => void loadStreams()}>Actualiser</button></div>
     <div className="live-coming-card">
       <span className="live-coming-icon">◉</span>
-      <div><b>Accès créateur</b><p>{user ? followerCount >= 500 ? "Tu remplis le critère des 500 abonnés. Tu peux lancer ton direct." : "Tu as " + followerCount + " abonnés sur 500. Il t'en manque " + (500 - followerCount) + "." : "Connecte-toi pour vérifier ton éligibilité."}</p><p className="form-hint">Le seuil de 500 abonnés est également contrôlé côté serveur avant chaque démarrage.</p></div>
-      <span className="live-soon-badge">{user && followerCount >= 500 ? "ÉLIGIBLE" : "500 ABONNÉS"}</span>
+      <div><b>Accès créateur</b><p>{user ? canStartLive ? (isTestAccount && followerCount < 500 ? "Mode test activé pour ton compte. Tu peux essayer un direct sans les 500 abonnés." : "Tu remplis le critère des 500 abonnés. Tu peux lancer ton direct.") : "Tu as " + followerCount + " abonnés sur 500. Il t'en manque " + (500 - followerCount) + "." : "Connecte-toi pour vérifier ton éligibilité."}</p><p className="form-hint">Le seuil de 500 abonnés est également contrôlé côté serveur avant chaque démarrage.</p></div>
+      <span className="live-soon-badge">{user && canStartLive ? (isTestAccount && followerCount < 500 ? "MODE TEST" : "ÉLIGIBLE") : "500 ABONNÉS"}</span>
     </div>
-    {user && followerCount >= 500 && <form className="offer-form" onSubmit={event => { event.preventDefault(); void callLive("start"); }}>
+    {user && canStartLive && <form className="offer-form" onSubmit={event => { event.preventDefault(); void callLive("start"); }}>
       <label>Titre du direct<input value={title} onChange={event => setTitle(event.target.value)} maxLength={100} placeholder="Ex. : Discussion avec la communauté" /></label>
       <button className="button button-green" disabled={busy}>{busy ? "Préparation..." : "◉ Démarrer mon LIVE"}</button>
     </form>}
